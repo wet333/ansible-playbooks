@@ -1,0 +1,63 @@
+---
+- name: Install Node environment (nvm, node.js, typescript) 
+  hosts: localhost
+  connection: local
+  become: yes
+  vars:
+    nvm_version: '0.38.0'  # NVM version you want to install
+    node_version: 'lts/*'  # install LTS version of Node.js
+  tasks:
+    - name: Update apt package lists
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - curl
+          - ca-certificates
+        state: present
+
+    - name: Download NVM installer
+      get_url:
+        url: "https://raw.githubusercontent.com/nvm-sh/nvm/v{{ nvm_version }}/install.sh"
+        dest: "/tmp/nvm-install.sh"
+        mode: '0755'
+
+    - name: Install NVM
+      shell:
+        cmd: bash ~/nvm-install.sh
+        executable: /bin/bash
+      args:
+        creates: "~/.nvm"
+
+    - name: Install Node.js using NVM
+      shell:
+        cmd: |
+          source ~/.nvm/nvm.sh
+          nvm install {{ node_version }}
+          nvm alias default {{ node_version }}
+        executable: /bin/bash
+
+    - name: Check Node.js version
+      shell:
+        cmd: |
+          source ~/.nvm/nvm.sh
+          node -v
+        executable: /bin/bash
+
+    - name: Install TypeScript globally
+      shell:
+        cmd: |
+          source /root/.nvm/nvm.sh
+          npm install -g typescript
+        executable: /bin/bash
+
+    - name: Add nvm to .bashrc 
+      lineinfile:
+        path: "~/.bashrc"
+        line: "{{ item }}"
+      loop:
+        - 'export NVM_DIR="$HOME/.nvm"'
+        - '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm'
+        - '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion'
